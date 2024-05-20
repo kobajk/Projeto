@@ -53,7 +53,8 @@ def inicializar_banco_de_dados():
     conn.commit()
     conn.close()
 
-
+# Variavel global para armazenar o status de login
+logged_in = False
 
 # Função para registrar um novo usuário
 def registrar_usuario():
@@ -102,6 +103,10 @@ def fazer_login():
         if decrypted_password == password:
             logging.info(f'Login bem-sucedido para {username}')
             messagebox.showinfo("Sucesso", f"Bem-vindo(a), {username}!")
+            global logged_in
+            usuario = cursor.fetchone()
+            logged_in = True
+            update_ui()
         else:
             messagebox.showerror("Erro", "Nome de usuário ou senha inválidos.")
     except cryptography.fernet.InvalidToken:
@@ -109,6 +114,11 @@ def fazer_login():
 
     conn.close()
 
+# funcao para fazer logout
+def fazer_logout():
+    global logged_in
+    logged_in = False
+    update_ui()
 
 # Função para exibir senha criptografada
 def exibir_senha_criptografada():
@@ -145,6 +155,39 @@ def deletar_usuario():
 
     conn.close()
 
+#funcao para verificar lista de usuarios
+def verificar_lista_usuarios():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    if usuario[3] == 'proprietario':
+        cursor.execute('''SELECT * FROM usuarios''')
+        usuarios = cursor.fetchall()
+        if usuarios:
+            messagebox.showinfo("Lista de Usuários", "Usuários e Senhas:\n" + "\n".join([f"{usuario[1]}: {fernet.decrypt(usuario[2].encode()).decode()} - {usuario[3]}" for usuario in usuarios]))
+        else:
+            messagebox.showerror("Erro", "Nenhum usuário encontrado.")
+    elif usuario[3] == 'administrador':
+        cursor.execute('''SELECT * FROM usuarios WHERE privilege IN ('administrador', 'usuario')''')
+        usuarios = cursor.fetchall()
+        if usuarios:
+            messagebox.showinfo("Lista de Usuários", "Usuários e Senhas:\n" + "\n".join([f"{usuario[1]}: {fernet.decrypt(usuario[2].encode()).decode()} - {usuario[3]}" for usuario in usuarios]))
+        else:
+            messagebox.showerror("Erro", "Nenhum usuário encontrado.")
+
+    conn.close()
+
+# atualizar interface se o usuario estiver logado
+def update_ui():
+    if logged_in:
+        button_senha_criptografada.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+        button_deletar_usuario.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+        button_logout.grid(row=6, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+    else:
+        button_senha_criptografada.grid_forget()
+        button_deletar_usuario.grid_forget()
+        button_logout.grid_forget()
+
 # Função principal
 
 inicializar_banco_de_dados()
@@ -180,9 +223,19 @@ button_login = tk.Button(root, text="Login", command=fazer_login)
 button_login.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
 button_senha_criptografada = tk.Button(root, text="Exibir Senha Criptografada", command=exibir_senha_criptografada)
-button_senha_criptografada.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+if logged_in:
+    button_senha_criptografada.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
 button_deletar_usuario = tk.Button(root, text="Deletar Usuário", command=deletar_usuario)
-button_deletar_usuario.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+if logged_in:
+    button_deletar_usuario.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
+button_logout = tk.Button(root, text="Logout", command=fazer_logout)
+if logged_in:
+    button_logout.grid(row=6, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+button_verificar_lista_usuarios = tk.Button(root, text="Verificar Lista de Usuários", command=verificar_lista_usuarios)
+if logged_in and usuario[3] == 'administrador':
+    button_verificar_lista_usuarios.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+    
 root.mainloop()
