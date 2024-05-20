@@ -1,6 +1,6 @@
-import tkinter as tk
+import tkinter as tk 
 from tkinter import messagebox
-import getpass
+import getpass # teste!
 from cryptography.fernet import Fernet
 import logging
 import os
