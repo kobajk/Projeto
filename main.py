@@ -26,7 +26,6 @@ logging.getLogger().setLevel(logging.INFO)
 chave_secreta = b'XwL9kxogGgBwJjj9vOZIAuq9-43Wvyz0u4aWhQBINJ4='
 fernet = Fernet(chave_secreta)
 
-# Local do banco de dados
 DB_PATH = r'C:\Users\bruno\Documents\Faculdade\AP2\Projeto\BD_teste.db'
 
 # Inicializar banco de dados
@@ -40,19 +39,21 @@ def inicializar_banco_de_dados():
                         password TEXT NOT NULL,
                         privilege TEXT NOT NULL
                     )''')
-    
-    fernet = Fernet(b'XwL9kxogGgBwJjj9vOZIAuq9-43Wvyz0u4aWhQBINJ4=')
 
-    usuarios_iniciais = [
-        ('proprietario', fernet.encrypt('proprietario123'.encode()).decode(), 'proprietario'),
-        ('administrador', fernet.encrypt('administrador123'.encode()).decode(), 'administrador'),
-        ('usuario', fernet.encrypt('usuario123'.encode()).decode(), 'usuario')
-    ]
+    cursor.execute('''SELECT COUNT(*) FROM usuarios''')
+    if cursor.fetchone()[0] == 0:
+        usuarios_iniciales = [
+            ('proprietario', fernet.encrypt('proprietario123'.encode()).decode(), 'proprietario'),
+            ('administrador', fernet.encrypt('administrador123'.encode()).decode(), 'administrador'),
+            ('usuario', fernet.encrypt('usuario123'.encode()).decode(), 'usuario')
+        ]
 
-    cursor.executemany('''INSERT INTO usuarios (username, password, privilege) VALUES (?,?,?)''', usuarios_iniciais)
+        cursor.executemany('''INSERT INTO usuarios (username, password, privilege) VALUES (?,?,?)''', usuarios_iniciales)
 
     conn.commit()
     conn.close()
+
+
 
 # Função para registrar um novo usuário
 def registrar_usuario():
@@ -83,7 +84,6 @@ def fazer_login():
     cursor = conn.cursor()
 
     try:
-        # Select the user from the database
         cursor.execute('''SELECT * FROM usuarios WHERE username=?''', (username,))
         usuario = cursor.fetchone()
         conn.commit()
@@ -96,8 +96,7 @@ def fazer_login():
     
     # if usuario:
     try:
-        fernet_login = Fernet(b'XwL9kxogGgBwJjj9vOZIAuq9-43Wvyz0u4aWhQBINJ4=')  # Criar uma nova instância de Fernet
-        decrypted_password = fernet_login.decrypt(usuario[2].encode()).decode()
+        decrypted_password = fernet.decrypt(usuario[2].encode()).decode()
         print(decrypted_password)
 
         if decrypted_password == password:
@@ -118,54 +117,72 @@ def exibir_senha_criptografada():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    try:
-        cursor.execute('''SELECT * FROM usuarios WHERE username=?''', (username,))
-        usuario = cursor.fetchone()
-        conn.commit()
+    cursor.execute('''SELECT password FROM usuarios WHERE username=?''', (username,))
+    senha_criptografada = cursor.fetchone()
 
-        if usuario:
-            fernet_login =Fernet(b'XwL9kxogGgBwJjj9vOZIAuq9-43Wvyz0u4aWhQBINJ4=')  # Criar uma nova instância de Fernet
-            decrypted_password = fernet_login.decrypt(usuario[2].encode()).decode()
+    if senha_criptografada:
+        messagebox.showinfo("Senha Criptografada", f"Senha criptografada do usuário {username}: {senha_criptografada[0]}")
+    else:
+        messagebox.showerror("Erro", "Usuário não encontrado.")
 
-            messagebox.showinfo("Senha criptografada", decrypted_password)
-        else:
-            messagebox.showerror("Erro", "Usuário não encontrado.")
-    except sqlite3.IntegrityError:
-        conn.rollback()
-    
     conn.close()
 
-# Criar a janela principal
-janela = tk.Tk()
+# Função para deletar usuário
+def deletar_usuario():
+    username = entry_username.get()
 
-# Configure o tamanho da janela e quais botões minimizar e fechar serão exibidos
-janela.geometry('300x150')
-janela.resizable(False, False)
-# janela.maxsize(width=300, height=150)
-# janela.minsize(width=300, height=150)
-janela.title("Login")
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
 
-# Criar as labels, entradas, botões e checkbox
+    try:
+        cursor.execute('''DELETE FROM usuarios WHERE username=?''', (username,))
+        conn.commit()
+        logging.info(f'Usuário deletado: {username}')
+        messagebox.showinfo("Sucesso", "Usuário deletado com sucesso.")
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        messagebox.showerror("Erro", "Usuário não encontrado.")
 
-label_username = tk.Label(janela, text="Nome de usuário:")
-label_username.place(x=10, y=20)
+    conn.close()
 
-entry_username = tk.Entry(janela, width=25)
-entry_username.place(x=10, y=40)
+# Função principal
 
-label_password = tk.Label(janela, text="Senha:")
-label_password.place(x=10, y=60)
+inicializar_banco_de_dados()
 
-entry_password = tk.Entry(janela, width=25, show='*')
-entry_password.place(x=10, y=80)
+root = tk.Tk()
+root.title("Sistema de Autenticação de Usuários")
 
-button_login = tk.Button(janela, text="Login", command=fazer_login)
-button_login.place(x=220, y=40)
+# Definir tamanho da janela
+root.geometry("400x250")
 
-button_registrar = tk.Button(janela, text="Registrar", command=registrar_usuario)
-button_registrar.place(x=220, y=80)
+# Centralizar os campos de entrada e botões
+root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(1, weight=1)
+root.grid_rowconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=1)
 
-button_ver_senha = tk.Button(janela, text="Ver senha", command=exibir_senha_criptografada)
-button_ver_senha.place(x=140, y=110)
+label_username = tk.Label(root, text="Nome de Usuário:")
+label_username.grid(row=0, column=0, padx=5, pady=5, sticky="e")
 
-janela.mainloop()
+entry_username = tk.Entry(root)
+entry_username.grid(row=0, column=1, padx=5, pady=5)
+
+label_password = tk.Label(root, text="Senha:")
+label_password.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+
+entry_password = tk.Entry(root, show="*")
+entry_password.grid(row=1, column=1, padx=5, pady=5)
+
+button_registrar = tk.Button(root, text="Registrar", command=registrar_usuario)
+button_registrar.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+button_login = tk.Button(root, text="Login", command=fazer_login)
+button_login.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+button_senha_criptografada = tk.Button(root, text="Exibir Senha Criptografada", command=exibir_senha_criptografada)
+button_senha_criptografada.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+button_deletar_usuario = tk.Button(root, text="Deletar Usuário", command=deletar_usuario)
+button_deletar_usuario.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+root.mainloop()
