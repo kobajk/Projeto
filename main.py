@@ -39,16 +39,16 @@ def inicializar_banco_de_dados():
                         password TEXT NOT NULL,
                         privilege TEXT NOT NULL
                     )''')
-    
-    fernet = Fernet(b'XwL9kxogGgBwJjj9vOZIAuq9-43Wvyz0u4aWhQBINJ4=')
 
-    usuarios_iniciales = [
-        ('proprietario', fernet.encrypt('proprietario123'.encode()).decode(), 'proprietario'),
-        ('administrador', fernet.encrypt('administrador123'.encode()).decode(), 'administrador'),
-        ('usuario', fernet.encrypt('usuario123'.encode()).decode(), 'usuario')
-    ]
+    cursor.execute('''SELECT COUNT(*) FROM usuarios''')
+    if cursor.fetchone()[0] == 0:
+        usuarios_iniciales = [
+            ('proprietario', fernet.encrypt('proprietario123'.encode()).decode(), 'proprietario'),
+            ('administrador', fernet.encrypt('administrador123'.encode()).decode(), 'administrador'),
+            ('usuario', fernet.encrypt('usuario123'.encode()).decode(), 'usuario')
+        ]
 
-    cursor.executemany('''INSERT INTO usuarios (username, password, privilege) VALUES (?,?,?)''', usuarios_iniciales)
+        cursor.executemany('''INSERT INTO usuarios (username, password, privilege) VALUES (?,?,?)''', usuarios_iniciales)
 
     conn.commit()
     conn.close()
@@ -96,8 +96,7 @@ def fazer_login():
     
     # if usuario:
     try:
-        fernet_login = Fernet(b'XwL9kxogGgBwJjj9vOZIAuq9-43Wvyz0u4aWhQBINJ4=')  # Criar uma nova instância de Fernet
-        decrypted_password = fernet_login.decrypt(usuario[2].encode()).decode()
+        decrypted_password = fernet.decrypt(usuario[2].encode()).decode()
         print(decrypted_password)
 
         if decrypted_password == password:
@@ -148,7 +147,7 @@ def deletar_usuario():
 
 # Função principal
 
-# inicializar_banco_de_dados()
+inicializar_banco_de_dados()
 
 root = tk.Tk()
 root.title("Sistema de Autenticação de Usuários")
