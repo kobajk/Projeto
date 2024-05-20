@@ -83,6 +83,7 @@ def fazer_login():
     cursor = conn.cursor()
 
     try:
+        # Select the user from the database
         cursor.execute('''SELECT * FROM usuarios WHERE username=?''', (username,))
         usuario = cursor.fetchone()
         conn.commit()
