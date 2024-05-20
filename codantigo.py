@@ -1,7 +1,7 @@
+import sqlite3
 import logging
 import getpass
 import os
-
 
 # Configuração do registro
 if not os.path.exists('atividades.log'):
@@ -18,52 +18,73 @@ logging.getLogger().addHandler(file_handler)
 # Definir o nível de log como INFO
 logging.getLogger().setLevel(logging.INFO)
 
-# Dados de usuários
-usuarios = {
-    'proprietario': {'username': 'proprietario', 'password': 'proprietario123', 'privilege': 'proprietario'},
-    'administrador': {'username': 'administrador', 'password': 'administrador123', 'privilege': 'administrador'},
-    'usuario': {'username': 'usuario', 'password': 'usuario123', 'privilege': 'usuario'}
-}
+# Conexão com o banco de dados
+conn = sqlite3.connect('BD_teste.bd')
+c = conn.cursor()
+
+# Criar tabela de usuários se não existir
+c.execute('''CREATE TABLE IF NOT EXISTS usuarios
+             (username text PRIMARY KEY, password text, privilege text)''')
+conn.commit()
 
 def registrar():
     username = input('Digite um novo nome de usuário: ')
     password = getpass.getpass('Digite uma nova senha: ')
 
-    if username not in usuarios:
-        usuarios[username] = {'username': username, 'password': password, 'privilege': 'usuario'}
+    c.execute("SELECT * FROM usuarios WHERE username=?", (username,))
+    if c.fetchone() is None:
+        c.execute("INSERT INTO usuarios (username, password, privilege) VALUES (?,?, 'usuario')", (username, password))
+        conn.commit()
         logging.info(f'Novo usuário registrado: {username}')
         print('Usuário registrado com sucesso.')
     else:
         print('Nome de usuário já existe.')
 
+    # Add admin, proprietario, and usuario users
+    admin_user = 'admin'
+    admin_password = 'admin123'
+    c.execute("SELECT * FROM usuarios WHERE username=?", (admin_user,))
+    if c.fetchone() is None:
+        c.execute("INSERT INTO usuarios (username, password, privilege) VALUES (?,?, 'admin')", (admin_user, admin_password))
+        conn.commit()
+        logging.info(f'Novo usuário registrado: {admin_user}')
+        print('Usuário registrado com sucesso.')
+
+    proprietario_user = 'proprietario'
+    proprietario_password = 'proprietario123'
+    c.execute("SELECT * FROM usuarios WHERE username=?", (proprietario_user,))
+    if c.fetchone() is None:
+        c.execute("INSERT INTO usuarios (username, password, privilege) VALUES (?,?, 'proprietario')", (proprietario_user, proprietario_password))
+        conn.commit()
+        logging.info(f'Novo usuário registrado: {proprietario_user}')
+        print('Usuário registrado com sucesso.')
+
+    usuario_user = 'usuario'
+    usuario_password = 'usuario123'
+    c.execute("SELECT * FROM usuarios WHERE username=?", (usuario_user,))
+    if c.fetchone() is None:
+        c.execute("INSERT INTO usuarios (username, password, privilege) VALUES (?,?, 'usuario')", (usuario_user, usuario_password))
+        conn.commit()
+        logging.info(f'Novo usuário registrado: {usuario_user}')
+        print('Usuário registrado com sucesso.')
+
 def fazer_login():
     username = input('Digite seu nome de usuário: ')
     password = getpass.getpass('Digite sua senha: ')
-    usuario = None
 
-    if username in usuarios:
-        usuario = usuarios[username]
+    c.execute("SELECT * FROM usuarios WHERE username=? AND password=?", (username, password))
+    usuario = c.fetchone()
 
-    if usuario and usuario['password'] == password:
+    if usuario:
         logging.info(f'Login bem-sucedido para {username}')
         print(f'Bem-vindo(a), {username}!')
-        return usuario['privilege']
+        return usuario[2]  # privilege
     else:
         login_tentativas = 0
         while login_tentativas < 3:
             acao = input('Senha incorreta. Deseja recuperar a senha? (S/N): ')
-            if acao.lower() == 's':
-                if usuario and usuario['privilege'] == 'usuario':
-                    print('Para recuperar a senha, contate o administrador.')
-                elif usuario and usuario['privilege'] == 'administrador':
-                    if usuario['username'] == 'proprietario':
-                        print('Você não pode recuperar a senha do proprietário.')
-                    else:
-                        print(f'Senha do usuário {username} é: {usuarios[username]["password"]}')
-                elif usuario and usuario['privilege'] == 'proprietario':
-                    print('Você não pode recuperar a senha do proprietário.')
-                else:
-                    print('Para recuperar a senha, contate o administrador.')
+            if acao.lower() == '':
+                # Recuperar senha lógica aqui
                 break
             elif acao.lower() == 'n':
                 login_tentativas += 1
@@ -75,28 +96,25 @@ def fazer_login():
                     break
             else:
                 print('Resposta inválida. Digite "S" ou "N".')
-    return None
 
 def deletar_usuario(username):
-    if username in usuarios:
-        del usuarios[username]
-        logging.info(f'Usuário deletado: {username}')
-        print('Usuário deletado com sucesso.')
-    else:
-        print('Usuário não encontrado.')
+    c.execute("DELETE FROM usuarios WHERE username=?", (username,))
+    conn.commit()
+    logging.info(f'Usuário deletado: {username}')
+    print('Usuário deletado com sucesso.')
 
 def modificar_usuario(username, privilege):
-    if username in usuarios:
-        usuarios[username]['privilege'] = privilege
-        logging.info(f'Privilégio de usuário modificado: {username}')
-        print('Privilégio de usuário modificado com sucesso.')
-    else:
-        print('Usuário não encontrado.')
+    c.execute("UPDATE usuarios SET privilege=? WHERE username=?", (privilege, username))
+    conn.commit()
+    logging.info(f'Privilégio de usuário modificado: {username}')
+    print('Privilégio de usuário modificado com sucesso.')
 
 def recuperar_senha(usuario_logado, username):
-    if username in usuarios and usuarios[username]['privilege'] <= usuario_logado['privilege']:
+    c.execute("SELECT password FROM usuarios WHERE username=?", (username,))
+    senha = c.fetchone()
+    if senha:
         logging.info(f'Solicitação de recuperação de senha para {username}')
-        print(f'Senha do usuário {username} é: {usuarios[username]["password"]}')
+        print(f'Senha do usuário {username} é: {senha[0]}')
 
 def main():
     while True:
@@ -119,33 +137,43 @@ def main():
                             print('Você não tem permissão para deletar usuários.')
                     elif acao == 'modificar':
                         username = input('Digite o nome de usuário do usuário a ser modificado: ')
-                        privilege = input('Digite o novo privilégio (usuário, administrador, ou proprietário): ')
-                        if privilege == 'usuário' or privilege == 'administrador' or privilege == 'proprietário':
-                            if privilege == 'proprietário' and privilege != usuarios[username]['privilege'] and privilege != 'administrador':
-                                print('Você não tem permissão para modificar o privilégio deste usuário.')
-                            elif privilege == 'administrador' and privilege != usuarios[username]['privilege']:
-                                print('Você não tem permissão para modificar o privilégio deste usuário.')
-                            else:
+                        if privilege == 'proprietario':
+                            privilege = input('Digite o novo privilégio (proprietario, administrador, ou usuario): ')
+                            if privilege in ['proprietario', 'administrador', 'usuario']:
                                 modificar_usuario(username, privilege)
+                                print('Modificação concluída.')
+                            else:
+                                print('Opção inválida. Tente novamente.')
+                        elif privilege == 'administrador':
+                            privilege = input('Digite o novo privilege (administrador, ou usuario): ')
+                            if privilege in ['administrador', 'usuario']:
+                                modificar_usuario(username, privilege)
+                                print('Modificação concluída.')
+                            else:
+                                print('Opção inválida. Tente novamente.')
                         else:
-                            print('Privilégio inválido.')
+                            print('Você não tem permissão para modificar usuários.')
                     elif acao == 'recuperar':
-                        username = input('Digite o nome de usuário do usuário a ter a senha recuperada: ')
-                        if privilege == 'proprietario' or privilege == 'administrador':
-                            recuperar_senha(usuarios[username], username)
+                        if privilege == 'proprietario':
+                            username = input('Digite o nome de usuário: ')
+                            recuperar_senha(privilege, username)
+                        elif privilege == 'administrador':
+                            username = input('Digite o nome de usuário: ')
+                            recuperar_senha(privilege, username)
+                        elif privilege == 'usuario':
+                            print('Você não tem permissão para recuperar senhas.')
                         else:
-                            print('Você não tem permissão para recuperar a senha deste usuário.')
+                            print('Opção inválida. Tente novamente.')
                     elif acao == 'sair':
                         break
                     else:
-                        print('Comando inválido.')
+                        print('Opção inválida. Tente novamente.')
             else:
-                print('Nome de usuário ou senha inválidos.')
+                print('Não foi possível fazer login.')
         elif acao == 'sair':
             break
         else:
-            print('Comando inválido.')
+            print('Opção inválida. Tente novamente.')
 
 if __name__ == '__main__':
     main()
-
