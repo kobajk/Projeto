@@ -1,4 +1,4 @@
-import tkinter as tk ##ss
+import tkinter as tk
 from tkinter import messagebox
 import getpass
 from cryptography.fernet import Fernet
@@ -7,7 +7,7 @@ import os
 import sqlite3
 import cryptography
 from cryptography.fernet import Fernet
-
+#teste
 # Configuração do registro
 if not os.path.exists('atividades.log'):
     open('atividades.log', 'a').close()
