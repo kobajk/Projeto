@@ -160,14 +160,14 @@ def verificar_lista_usuarios():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    if usuario[3] == 'proprietario':
+    if usuarios[3] == 'proprietario':
         cursor.execute('''SELECT * FROM usuarios''')
         usuarios = cursor.fetchall()
         if usuarios:
             messagebox.showinfo("Lista de Usuários", "Usuários e Senhas:\n" + "\n".join([f"{usuario[1]}: {fernet.decrypt(usuario[2].encode()).decode()} - {usuario[3]}" for usuario in usuarios]))
         else:
             messagebox.showerror("Erro", "Nenhum usuário encontrado.")
-    elif usuario[3] == 'administrador':
+    elif usuarios[3] == 'administrador':
         cursor.execute('''SELECT * FROM usuarios WHERE privilege IN ('administrador', 'usuario')''')
         usuarios = cursor.fetchall()
         if usuarios:
