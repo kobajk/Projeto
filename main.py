@@ -7,7 +7,7 @@ import os
 import sqlite3
 import cryptography
 from cryptography.fernet import Fernet
-#teste
+
 # Configuração do registro
 if not os.path.exists('atividades.log'):
     open('atividades.log', 'a').close()
@@ -122,33 +122,6 @@ def fazer_logout():
     logged_in = False
     update_ui()
 
-# Função para exibir senha criptografada
-def exibir_senha_criptografada():
-    username = entry_username.get()
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute('''SELECT password, privilege FROM usuarios WHERE username=?''', (username,))
-    result = cursor.fetchone()
-
-    if result:
-        password_criptografada, privilege = result
-        if logged_in and privilege == 'usuario':
-            messagebox.showinfo("Senha Criptografada", f"Senha criptografada do usuário {username}: {password_criptografada}")
-        elif logged_in and privilege == 'administrador' and current_user_privilege == 'proprietario':
-            messagebox.showinfo("Senha Descriptografada", f"Senha descriptografada do usuário {username}: {fernet.decrypt(password_criptografada.encode()).decode()}")
-        elif logged_in and privilege == 'usuario' and current_user_privilege == 'administrador':
-            messagebox.showinfo("Senha Descriptografada", f"Senha descriptografada do usuário {username}: {fernet.decrypt(password_criptografada.encode()).decode()}")
-        elif logged_in and privilege == 'proprietario' and current_user_privilege == 'proprietario':
-            messagebox.showinfo("Senha Descriptografada", f"Senha descriptografada do usuário {username}: {fernet.decrypt(password_criptografada.encode()).decode()}")
-        else:
-            messagebox.showerror("Erro", "Você não tem permissão para visualizar esta senha.")
-    else:
-        messagebox.showerror("Erro", "Usuário não encontrado.")
-
-    conn.close()
-
 # Função para deletar usuário
 def deletar_usuario():
     username = entry_username.get()
@@ -192,11 +165,9 @@ def verificar_lista_usuarios():
 # atualizar interface se o usuario estiver logado
 def update_ui():
     if logged_in:
-        button_senha_criptografada.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
         button_deletar_usuario.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
         button_logout.grid(row=6, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
     else:
-        button_senha_criptografada.grid_forget()
         button_deletar_usuario.grid_forget()
         button_logout.grid_forget()
 
@@ -235,10 +206,6 @@ button_registrar.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew"
 
 button_login = tk.Button(root, text="Login", command=fazer_login)
 button_login.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
-
-button_senha_criptografada = tk.Button(root, text="Exibir Senha Criptografada", command=exibir_senha_criptografada)
-if logged_in:
-    button_senha_criptografada.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
 button_deletar_usuario = tk.Button(root, text="Deletar Usuário", command=deletar_usuario)
 if logged_in:
