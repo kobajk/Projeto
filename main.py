@@ -56,7 +56,7 @@ def inicializar_banco_de_dados():
 # Variavel global para armazenar o status de login
 logged_in = False
 
-# Define current_user_privilege in the global scope
+# Variavel global para guardar o privilegio do atual usuario
 current_user_privilege = None
 
 # Função para registrar um novo usuário
@@ -118,8 +118,9 @@ def fazer_login():
     
 # funcao para fazer logout
 def fazer_logout():
-    global logged_in
+    global logged_in, current_user_privilege
     logged_in = False
+    current_user_privilege = None
     update_ui()
 
 # Função para deletar usuário
@@ -167,56 +168,56 @@ def update_ui():
     if logged_in:
         button_deletar_usuario.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
         button_logout.grid(row=6, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+        button_listar_usuarios.grid(row=7, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
     else:
         button_deletar_usuario.grid_forget()
         button_logout.grid_forget()
+        button_listar_usuarios.grid_forget()
 
-# Função principal
-conn = sqlite3.connect(DB_PATH)
-cursor = conn.cursor()
-usuario = cursor.fetchone()
-inicializar_banco_de_dados()
 
-root = tk.Tk()
-root.title("Sistema de Autenticação de Usuários")
+# funcao principal
+if __name__ == '__main__':
+    inicializar_banco_de_dados()
 
-# Definir tamanho da janela
-root.geometry("400x250")
+    root = tk.Tk()
+    root.title("Sistema de Autenticação de Usuários")
 
-# Centralizar os campos de entrada e botões
-root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=1)
-root.grid_rowconfigure(0, weight=1)
-root.grid_rowconfigure(1, weight=1)
+    # Definir tamanho da janela
+    root.geometry("400x250")
 
-label_username = tk.Label(root, text="Nome de Usuário:")
-label_username.grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    # Centralizar os campos de entrada e botões
+    root.grid_columnconfigure(0, weight=1)
+    root.grid_columnconfigure(1, weight=1)
+    root.grid_rowconfigure(0, weight=1)
+    root.grid_rowconfigure(1, weight=1)
 
-entry_username = tk.Entry(root)
-entry_username.grid(row=0, column=1, padx=5, pady=5)
+    label_username = tk.Label(root, text="Nome de Usuário:")
+    label_username.grid(row=0, column=0, padx=5, pady=5, sticky="e")
 
-label_password = tk.Label(root, text="Senha:")
-label_password.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    entry_username = tk.Entry(root)
+    entry_username.grid(row=0, column=1, padx=5, pady=5)
 
-entry_password = tk.Entry(root, show="*")
-entry_password.grid(row=1, column=1, padx=5, pady=5)
+    label_password = tk.Label(root, text="Senha:")
+    label_password.grid(row=1, column=0, padx=5, pady=5, sticky="e")
 
-button_registrar = tk.Button(root, text="Registrar", command=registrar_usuario)
-button_registrar.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+    entry_password = tk.Entry(root, show="*")
+    entry_password.grid(row=1, column=1, padx=5, pady=5)
 
-button_login = tk.Button(root, text="Login", command=fazer_login)
-button_login.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+    button_registrar = tk.Button(root, text="Registrar", command=registrar_usuario)
+    button_registrar.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-button_deletar_usuario = tk.Button(root, text="Deletar Usuário", command=deletar_usuario)
-if logged_in:
+    button_login = tk.Button(root, text="Login", command=fazer_login)
+    button_login.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+    button_deletar_usuario = tk.Button(root, text="Deletar Usuário", command=deletar_usuario)
     button_deletar_usuario.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-button_logout = tk.Button(root, text="Logout", command=fazer_logout)
-if logged_in:
+    button_logout = tk.Button(root, text="Logout", command=fazer_logout)
     button_logout.grid(row=6, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-button_list_all_users = tk.Button(root, text="List All Users", command=verificar_lista_usuarios)
-if logged_in:
-    button_list_all_users.grid(row=7, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
- 
-root.mainloop()
+    button_listar_usuarios = tk.Button(root, text="Listar Todos os Usuários", command=verificar_lista_usuarios)
+    if logged_in:
+        button_listar_usuarios.grid(row=7, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+    root.mainloop()
